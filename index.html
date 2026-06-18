@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analyseur Shariah Expert - AAOIFI</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         @media print {
@@ -20,400 +17,718 @@
                 break-inside: avoid;
             }
         }
+        /* Style personnalisé pour les info-bulles */
+        .tooltip-box {
+            display: none;
+        }
+        .tooltip-container:hover .tooltip-box {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans">
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect, useCallback, memo } = React;
-
-        const HelpTooltip = ({ text }) => (
-            <div className="group relative inline-block ml-2 no-print">
-                <span className="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                </span>
-                <div className="invisible group-hover:visible absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
-                    {text}
-                </div>
-            </div>
-        );
-
-        const FinancialInput = memo(({ label, name, initialValue, onChange, isRed, isBlue, disabled, tooltip, isCenter }) => {
-            const format = (num) => {
-                if (num === 0 || !num) return '';
-                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-            };
-
-            const [localValue, setLocalValue] = useState(format(initialValue));
-
-            useEffect(() => {
-                setLocalValue(format(initialValue));
-            }, [initialValue]);
-
-            const handleBlur = () => {
-                const numeric = localValue.replace(/\s/g, '');
-                if (numeric !== '' && !isNaN(parseFloat(numeric))) {
-                    setLocalValue(format(parseFloat(numeric)));
-                }
-            };
-
-            const handleLocalChange = (e) => {
-                const val = e.target.value;
-                const cleanVal = val.replace(/[^\d\s.]/g, '');
-                setLocalValue(cleanVal);
-                
-                const numeric = cleanVal.replace(/\s/g, '');
-                if (numeric === '' || !isNaN(parseFloat(numeric))) {
-                    onChange(name, numeric === '' ? 0 : parseFloat(numeric));
-                }
-            };
-
-            return (
-                <div className={`flex flex-col space-y-1.5 flex-1 min-w-0 ${isCenter ? 'items-center' : ''}`}>
-                    <div className="flex items-center">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{label}</label>
-                        {tooltip && <HelpTooltip text={tooltip} />}
+    <div id="app" class="min-h-screen p-4 md:p-8 text-slate-900">
+        <div class="max-w-6xl mx-auto">
+            
+            <!-- HEADER -->
+            <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 no-print">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
-                    <div className="relative w-full">
-                        <input 
-                            type="text" 
-                            value={localValue}
-                            onChange={handleLocalChange}
-                            onBlur={handleBlur}
-                            placeholder="0"
-                            disabled={disabled}
-                            className={`w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200
-                                ${isRed ? 'bg-red-50/30 border-red-100 text-red-900 font-bold' : 
-                                  isBlue ? 'bg-indigo-50/30 border-indigo-200 font-semibold text-indigo-900' : 
-                                  'bg-white border-slate-200'} 
-                                ${isCenter ? 'text-center' : ''}
-                                ${disabled ? 'cursor-default' : 'hover:border-slate-300'}`} 
-                        />
+                    <div>
+                        <h1 class="text-2xl font-black text-slate-800 tracking-tight">Analyseur Shariah Expert</h1>
+                        <p class="text-slate-400 text-xs font-medium uppercase tracking-widest">Normes AAOIFI & Négociabilité</p>
                     </div>
                 </div>
-            );
-        });
+                <div class="flex items-center flex-wrap gap-2">
+                    <button id="btn-export" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-green-50 text-green-700 border border-green-100 hover:bg-green-100 transition-all flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>
+                        Excel
+                    </button>
+                    <div id="status-badge" class="px-6 py-2.5 rounded-xl flex items-center gap-3 shadow-lg text-white transition-colors duration-500">
+                        <span id="status-text" class="font-black text-sm uppercase tracking-widest">Calcul en cours...</span>
+                    </div>
+                </div>
+            </header>
 
-        const App = () => {
-            const [data, setData] = useState(() => {
-                try {
-                    const saved = localStorage.getItem('aaoifi_data_v8');
-                    return saved ? JSON.parse(saved) : {
-                        companyName: '', dataPeriod: '', totalAssets: 0, marketCap: 0, 
-                        shortTermDebt: 0, longTermDebt: 0, nonCompliantIncome: 0, totalRevenue: 0, 
-                        cashAndEquivalents: 0, accountsReceivable: 0, interestBearingSecurities: 0,
-                        financialAssetsLongTerm: 0, securitiesShortTerm: 0, debtDenominatorSelection: 'min'
-                    };
-                } catch (e) {
-                    return { companyName: '', dataPeriod: '', totalAssets: 0, marketCap: 0, shortTermDebt: 0, longTermDebt: 0, nonCompliantIncome: 0, totalRevenue: 0, cashAndEquivalents: 0, accountsReceivable: 0, interestBearingSecurities: 0, financialAssetsLongTerm: 0, securitiesShortTerm: 0, debtDenominatorSelection: 'min' };
-                }
-            });
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- COLONNE GAUCHE (SAISIE) -->
+                <div class="lg:col-span-8 space-y-6">
+                    
+                    <!-- 1. IDENTIFICATION -->
+                    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
+                        <h2 class="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">1</span>
+                            Identification
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="flex flex-col space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Entreprise</label>
+                                <input type="text" id="companyName" class="p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Ex: Microsoft" />
+                            </div>
+                            <div class="flex flex-col space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Période</label>
+                                <input type="text" id="dataPeriod" class="p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Ex: Q4 2024" />
+                            </div>
+                        </div>
+                    </div>
 
-            const [ratios, setRatios] = useState({ 
-                incomeRatio: 0, 
-                debtRatio: 0, 
-                liquidityRatio: 0, 
-                investmentRatio: 0,
-                isCompliant: false, 
-                currentDenominatorMin: 0, 
-                totalDebt: 0,
-                totalLiquidAssets: 0,
-                totalInterestInvestments: 0,
-                selectedDebtDenominator: 0
-            });
+                    <!-- 2. DENOMINATEUR -->
+                    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
+                        <h2 class="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">2</span>
+                            Dénominateur
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Cap. Boursière -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Cap. Boursière</label>
+                                </div>
+                                <input type="text" id="marketCap" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-indigo-50/30 border-indigo-200 font-semibold text-indigo-900" />
+                            </div>
+                            <!-- Total Actifs -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Total Actifs</label>
+                                </div>
+                                <input type="text" id="totalAssets" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-indigo-50/30 border-indigo-200 font-semibold text-indigo-900" />
+                            </div>
+                        </div>
+                    </div>
 
-            const THRESHOLDS = { income: 0.05, debt: 0.30, liquidity: 0.70, investments: 0.30 };
+                    <!-- 3. REVENUS -->
+                    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
+                        <h2 class="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">3</span>
+                            Revenus (Max 5%)
+                            <div class="tooltip-container relative inline-block ml-2 no-print">
+                                <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                </span>
+                                <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                    Ratio calculé sur la base du Chiffre d'Affaires Global.
+                                </div>
+                            </div>
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- CA Global -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">CA Global</label>
+                                </div>
+                                <input type="text" id="totalRevenue" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-white border-slate-200" />
+                            </div>
+                            <!-- Revenus Non-Conformes -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Revenus Non-Conformes</label>
+                                    <div class="tooltip-container relative inline-block ml-2 no-print">
+                                        <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                        </span>
+                                        <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                            Produits prohibés, intérêts, etc.
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="nonCompliantIncome" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-red-50/30 border-red-100 text-red-900 font-bold" />
+                            </div>
+                        </div>
+                    </div>
 
-            useEffect(() => {
-                localStorage.setItem('aaoifi_data_v8', JSON.stringify(data));
-                
-                const { totalAssets, marketCap, totalRevenue, nonCompliantIncome, shortTermDebt, longTermDebt, cashAndEquivalents, interestBearingSecurities, accountsReceivable, financialAssetsLongTerm, securitiesShortTerm, debtDenominatorSelection } = data;
+                    <!-- 4. DETTE -->
+                    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-3">
+                                <span class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">4</span>
+                                Dette (Max 30%)
+                                <div class="tooltip-container relative inline-block ml-2 no-print">
+                                    <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                    </span>
+                                    <div id="debt-tooltip-denom" class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                        Dénominateur utilisé pour ce ratio...
+                                    </div>
+                                </div>
+                            </h2>
+                            <div class="flex items-center gap-2 no-print">
+                                <label class="text-[10px] font-black text-slate-400 uppercase">Diviseur :</label>
+                                <select id="debtDenominatorSelection" class="text-[10px] p-1 bg-slate-50 border border-slate-200 rounded font-bold">
+                                    <option value="min">Minimum Prudent</option>
+                                    <option value="marketCap">Cap. Boursière</option>
+                                    <option value="totalAssets">Total Actifs</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Dette Court Terme -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Dette Court Terme</label>
+                                    <div class="tooltip-container relative inline-block ml-2 no-print">
+                                        <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                        </span>
+                                        <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                            Dettes financières à &lt; 12 mois. EXEMPLES : Découverts bancaires, billets de trésorerie (commercial papers), part à court terme des emprunts à long terme.
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="shortTermDebt" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-white border-slate-200" />
+                            </div>
+                            <!-- Dette Long Terme -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Dette Long Terme</label>
+                                    <div class="tooltip-container relative inline-block ml-2 no-print">
+                                        <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                        </span>
+                                        <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                            Dettes financières à &gt; 12 mois. EXEMPLES : Emprunts obligataires (bonds), crédits bancaires d'investissement, dettes de location-financement (leasing).
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="longTermDebt" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-white border-slate-200" />
+                            </div>
+                            <!-- Total Dette -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Total Dette</label>
+                                </div>
+                                <input type="text" id="totalDebt" placeholder="0" disabled class="w-full p-2.5 rounded-xl border text-sm outline-none bg-red-50/30 border-red-100 text-red-900 font-bold cursor-default" />
+                            </div>
+                        </div>
+                    </div>
 
-                const denominatorMin = (marketCap > 0 && totalAssets > 0) ? Math.min(marketCap, totalAssets) : (marketCap || totalAssets || 0);
-                const incomeRatio = totalRevenue > 0 ? nonCompliantIncome / totalRevenue : 0;
+                    <!-- 5. PLACEMENTS A INTERETS -->
+                    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
+                        <h2 class="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">5</span>
+                            Placements à Intérêts (Max 30%)
+                            <div class="tooltip-container relative inline-block ml-2 no-print">
+                                <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                </span>
+                                <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                    Ratio calculé sur la base de la Capitalisation Boursière.
+                                </div>
+                            </div>
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Immo. Financières -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Immo. Financières</label>
+                                    <div class="tooltip-container relative inline-block ml-2 no-print">
+                                        <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                        </span>
+                                        <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                            Placements et immobilisations financières à long terme (Fixed Income, Bonds).
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="financialAssetsLongTerm" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-white border-slate-200" />
+                            </div>
+                            <!-- Titres Court Terme -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Titres Court Terme</label>
+                                    <div class="tooltip-container relative inline-block ml-2 no-print">
+                                        <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                        </span>
+                                        <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                            Placements monétaires et titres négociables à court terme générant des intérêts.
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="securitiesShortTerm" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-white border-slate-200" />
+                            </div>
+                            <!-- Total Placements -->
+                            <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Total Placements</label>
+                                </div>
+                                <input type="text" id="totalInterestInvestments" placeholder="0" disabled class="w-full p-2.5 rounded-xl border text-sm outline-none bg-red-50/30 border-red-100 text-red-900 font-bold cursor-default" />
+                            </div>
+                        </div>
+                    </div>
 
-                let debtDenom = denominatorMin;
-                if (debtDenominatorSelection === 'marketCap') debtDenom = marketCap;
-                else if (debtDenominatorSelection === 'totalAssets') debtDenom = totalAssets;
-                const currentTotalDebt = (shortTermDebt || 0) + (longTermDebt || 0);
-                const debtRatio = debtDenom > 0 ? currentTotalDebt / debtDenom : 0;
-                
-                const currentTotalInvestments = (financialAssetsLongTerm || 0) + (securitiesShortTerm || 0);
-                const investmentRatio = marketCap > 0 ? currentTotalInvestments / marketCap : 0;
-
-                const liquidAssets = (cashAndEquivalents || 0) + (interestBearingSecurities || 0) + (accountsReceivable || 0);
-                const liquidityRatio = denominatorMin > 0 ? liquidAssets / denominatorMin : 0;
-
-                setRatios({
-                    incomeRatio, debtRatio, liquidityRatio, investmentRatio,
-                    isCompliant: incomeRatio <= THRESHOLDS.income && 
-                                debtRatio <= THRESHOLDS.debt && 
-                                liquidityRatio <= THRESHOLDS.liquidity &&
-                                investmentRatio <= THRESHOLDS.investments,
-                    currentDenominatorMin: denominatorMin,
-                    totalDebt: currentTotalDebt,
-                    totalLiquidAssets: liquidAssets,
-                    totalInterestInvestments: currentTotalInvestments,
-                    selectedDebtDenominator: debtDenom
-                });
-            }, [data]);
-
-            const handleDataChange = useCallback((name, value) => {
-                setData(prev => ({ ...prev, [name]: value }));
-            }, []);
-
-            const exportToExcel = () => {
-                const worksheetData = [
-                    ["RAPPORT D'ANALYSE SHARIAH"],
-                    ["Entreprise", data.companyName],
-                    ["Période", data.dataPeriod],
-                    ["Date d'analyse", new Date().toLocaleDateString()],
-                    [""],
-                    ["DONNÉES FINANCIÈRES"],
-                    ["Capitalisation Boursière", data.marketCap],
-                    ["Total Actifs", data.totalAssets],
-                    ["Chiffre d'Affaires", data.totalRevenue],
-                    ["Revenus Non-Conformes", data.nonCompliantIncome],
-                    ["Dette Totale", ratios.totalDebt],
-                    ["Total Placements Intérêts", ratios.totalInterestInvestments],
-                    ["Total Liquidités", ratios.totalLiquidAssets],
-                    [""],
-                    ["RÉSULTATS DES RATIOS"],
-                    ["Ratio Revenus Impurs (Max 5%)", (ratios.incomeRatio * 100).toFixed(2) + "%"],
-                    ["Ratio Dette (Max 30%)", (ratios.debtRatio * 100).toFixed(2) + "%"],
-                    ["Ratio Placements Intérêts (Max 30%)", (ratios.investmentRatio * 100).toFixed(2) + "%"],
-                    ["Ratio Liquidités (Max 70%)", (ratios.liquidityRatio * 100).toFixed(2) + "%"],
-                    ["Statut Final", ratios.isCompliant ? "CONFORME" : "NON-CONFORME"]
-                ];
-
-                const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Analyse");
-                XLSX.writeFile(wb, `Analyse_Shariah_${data.companyName || 'Export'}.xlsx`);
-            };
-
-            const minDenomLabel = (data.marketCap > 0 && data.totalAssets > 0) ? "Minimum de la Cap. Boursière et du Total Actifs" : (data.marketCap ? "Capitalisation Boursière" : "Total Actifs");
-            const debtDenomLabel = data.debtDenominatorSelection === 'min' ? minDenomLabel : (data.debtDenominatorSelection === 'marketCap' ? "Capitalisation Boursière" : "Total Actifs");
-
-            return (
-                <div className="min-h-screen p-4 md:p-8 text-slate-900">
-                    <div className="max-w-6xl mx-auto">
+                    <!-- 6. LIQUIDITE -->
+                    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
+                        <h2 class="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">6</span>
+                            Liquidité (Max 70%)
+                            <div class="tooltip-container relative inline-block ml-2 no-print">
+                                <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                </span>
+                                <div id="liquidity-tooltip" class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                    Dénominateur utilisé pour ce ratio...
+                                </div>
+                            </div>
+                        </h2>
                         
-                        <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 no-print">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                                </div>
-                                <div>
-                                    <h1 className="text-2xl font-black text-slate-800 tracking-tight">Analyseur Shariah Expert</h1>
-                                    <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">Normes AAOIFI & Négociabilité</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center flex-wrap gap-2">
-                                <button onClick={exportToExcel} className="px-5 py-2.5 rounded-xl text-sm font-bold bg-green-50 text-green-700 border border-green-100 hover:bg-green-100 transition-all flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>
-                                    Excel
-                                </button>
-                                <div className={`px-6 py-2.5 rounded-xl flex items-center gap-3 shadow-lg ${ratios.isCompliant ? 'bg-green-600' : 'bg-red-600'} text-white transition-colors duration-500`}>
-                                    <span className="font-black text-sm uppercase tracking-widest">{ratios.isCompliant ? "Conforme" : "Non-Conforme"}</span>
-                                </div>
-                            </div>
-                        </header>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                            <div className="lg:col-span-8 space-y-6">
-                                
-                                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
-                                    <h2 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">1</span>
-                                        Identification
-                                    </h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="flex flex-col space-y-1">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Entreprise</label>
-                                            <input type="text" value={data.companyName} onChange={(e) => handleDataChange('companyName', e.target.value)} className="p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Ex: Microsoft" />
-                                        </div>
-                                        <div className="flex flex-col space-y-1">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Période</label>
-                                            <input type="text" value={data.dataPeriod} onChange={(e) => handleDataChange('dataPeriod', e.target.value)} className="p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Ex: Q4 2024" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
-                                    <h2 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">2</span>
-                                        Dénominateur
-                                    </h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <FinancialInput label="Cap. Boursière" name="marketCap" initialValue={data.marketCap} onChange={handleDataChange} isBlue />
-                                        <FinancialInput label="Total Actifs" name="totalAssets" initialValue={data.totalAssets} onChange={handleDataChange} isBlue />
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
-                                    <h2 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">3</span>
-                                        Revenus (Max 5%)
-                                        <HelpTooltip text="Ratio calculé sur la base du Chiffre d'Affaires Global." />
-                                    </h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <FinancialInput label="CA Global" name="totalRevenue" initialValue={data.totalRevenue} onChange={handleDataChange} />
-                                        <FinancialInput label="Revenus Non-Conformes" name="nonCompliantIncome" initialValue={data.nonCompliantIncome} onChange={handleDataChange} isRed tooltip="Produits prohibés, intérêts, etc." />
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h2 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-3">
-                                            <span className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">4</span>
-                                            Dette (Max 30%)
-                                            <HelpTooltip text={`Dénominateur utilisé pour ce ratio : ${debtDenomLabel}.`} />
-                                        </h2>
-                                        <div className="flex items-center gap-2 no-print">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase">Diviseur :</label>
-                                            <select 
-                                                value={data.debtDenominatorSelection}
-                                                onChange={(e) => handleDataChange('debtDenominatorSelection', e.target.value)}
-                                                className="text-[10px] p-1 bg-slate-50 border border-slate-200 rounded font-bold"
-                                            >
-                                                <option value="min">Minimum Prudent</option>
-                                                <option value="marketCap">Cap. Boursière</option>
-                                                <option value="totalAssets">Total Actifs</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <FinancialInput 
-                                            label="Dette Court Terme" 
-                                            name="shortTermDebt" 
-                                            initialValue={data.shortTermDebt} 
-                                            onChange={handleDataChange} 
-                                            tooltip="Dettes financières à < 12 mois. EXEMPLES : Découverts bancaires, billets de trésorerie (commercial papers), part à court terme des emprunts à long terme."
-                                        />
-                                        <FinancialInput 
-                                            label="Dette Long Terme" 
-                                            name="longTermDebt" 
-                                            initialValue={data.longTermDebt} 
-                                            onChange={handleDataChange} 
-                                            tooltip="Dettes financières à > 12 mois. EXEMPLES : Emprunts obligataires (bonds), crédits bancaires d'investissement, dettes de location-financement (leasing)."
-                                        />
-                                        <FinancialInput label="Total Dette" name="totalDebt" initialValue={ratios.totalDebt} onChange={() => {}} disabled isRed />
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
-                                    <h2 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">5</span>
-                                        Placements à Intérêts (Max 30%)
-                                        <HelpTooltip text="Ratio calculé sur la base de la Capitalisation Boursière." />
-                                    </h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <FinancialInput 
-                                            label="Immo. Financières" 
-                                            name="financialAssetsLongTerm" 
-                                            initialValue={data.financialAssetsLongTerm} 
-                                            onChange={handleDataChange} 
-                                            tooltip="Placements et immobilisations financières à long terme (Fixed Income, Bonds)."
-                                        />
-                                        <FinancialInput 
-                                            label="Titres Court Terme" 
-                                            name="securitiesShortTerm" 
-                                            initialValue={data.securitiesShortTerm} 
-                                            onChange={handleDataChange} 
-                                            tooltip="Placements monétaires et titres négociables à court terme générant des intérêts."
-                                        />
-                                        <FinancialInput label="Total Placements" name="totalInterestInvestments" initialValue={ratios.totalInterestInvestments} onChange={() => {}} disabled isRed />
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 print-card">
-                                    <h2 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px]">6</span>
-                                        Liquidité (Max 70%)
-                                        <HelpTooltip text={`Dénominateur utilisé pour ce ratio : ${minDenomLabel}.`} />
-                                    </h2>
-                                    
-                                    <div className="flex flex-col space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <FinancialInput label="Trésorerie" name="cashAndEquivalents" initialValue={data.cashAndEquivalents} onChange={handleDataChange} tooltip="Disponibilités immédiates en banque et caisse." />
-                                            <FinancialInput label="Placements" name="interestBearingSecurities" initialValue={data.interestBearingSecurities} onChange={handleDataChange} tooltip="Titres et placements à court terme rémunérés." />
-                                            <FinancialInput label="Créances" name="accountsReceivable" initialValue={data.accountsReceivable} onChange={handleDataChange} tooltip="Créances clients et autres débiteurs à court terme." />
-                                        </div>
-
-                                        <div className="flex flex-col items-center border-t border-slate-100 pt-4">
-                                            <div className="w-full md:w-1/3">
-                                                <FinancialInput 
-                                                    label="Total Liquidités" 
-                                                    name="totalLiquidAssets" 
-                                                    initialValue={ratios.totalLiquidAssets} 
-                                                    onChange={() => {}} 
-                                                    disabled 
-                                                    isRed 
-                                                    isCenter
-                                                />
+                        <div class="flex flex-col space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Trésorerie -->
+                                <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                    <div class="flex items-center">
+                                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Trésorerie</label>
+                                        <div class="tooltip-container relative inline-block ml-2 no-print">
+                                            <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                            </span>
+                                            <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                                Disponibilités immédiates en banque et caisse.
                                             </div>
                                         </div>
                                     </div>
+                                    <input type="text" id="cashAndEquivalents" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-white border-slate-200" />
+                                </div>
+                                <!-- Placements -->
+                                <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                    <div class="flex items-center">
+                                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Placements</label>
+                                        <div class="tooltip-container relative inline-block ml-2 no-print">
+                                            <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                            </span>
+                                            <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                                Titres et placements à court terme rémunérés.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="text" id="interestBearingSecurities" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-white border-slate-200" />
+                                </div>
+                                <!-- Créances -->
+                                <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                                    <div class="flex items-center">
+                                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Créances</label>
+                                        <div class="tooltip-container relative inline-block ml-2 no-print">
+                                            <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                            </span>
+                                            <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -left-24 md:left-0 border border-slate-700">
+                                                Créances clients et autres débiteurs à court terme.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="text" id="accountsReceivable" placeholder="0" class="w-full p-2.5 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-200 bg-white border-slate-200" />
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-4">
-                                <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 sticky top-8 print-card">
-                                    <h3 className="font-black text-slate-800 mb-8 text-xl border-b border-slate-50 pb-4 tracking-tight text-center">Résumé Analyse</h3>
-                                    
-                                    <div className="space-y-8 mb-12">
-                                        {[
-                                            { label: 'Revenus (5%)', val: ratios.incomeRatio, t: 0.05, tooltip: "Basé sur le Chiffre d'Affaires Global." },
-                                            { label: 'Dette (30%)', val: ratios.debtRatio, t: 0.30, tooltip: `Basé sur : ${debtDenomLabel}.` },
-                                            { label: 'Placement à intérêt (30%)', val: ratios.investmentRatio, t: 0.30, tooltip: "Basé sur la Capitalisation Boursière." },
-                                            { label: 'Liquidité (70%)', val: ratios.liquidityRatio, t: 0.70, tooltip: `Basé sur : ${minDenomLabel}.` }
-                                        ].map((r, i) => (
-                                            <div key={i} className="flex flex-col">
-                                                <div className="flex justify-between items-center text-[10px] font-bold uppercase mb-2">
-                                                    <div className="flex items-center">
-                                                        <span className="text-slate-400 tracking-wider">{r.label}</span>
-                                                        {r.tooltip && <HelpTooltip text={r.tooltip} />}
-                                                    </div>
-                                                    <span className={`${r.val > r.t ? 'text-red-500' : 'text-indigo-600'} font-black text-xs`}>
-                                                        {(r.val * 100).toFixed(2)}%
-                                                    </span>
-                                                </div>
-                                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-1.5">
-                                                    <div 
-                                                        className={`h-full transition-all duration-700 ease-out ${r.val > r.t ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'bg-indigo-600'}`} 
-                                                        style={{ width: `${Math.min(100, (r.val/r.t)*100)}%` }} 
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                            <!-- CASE TOTAL LIQUIDITE AVEC INTERLIGNE REDUIT -->
+                            <div class="flex flex-col items-center border-t border-slate-100 pt-4">
+                                <div class="w-full md:w-1/3 flex flex-col items-center">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate mb-1.5">Total Liquidités</label>
+                                    <input type="text" id="totalLiquidAssets" placeholder="0" disabled class="w-full p-2.5 rounded-xl border text-sm outline-none bg-red-50/30 border-red-100 text-red-900 font-bold text-center cursor-default" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                    <div className="text-center pt-6 border-t border-slate-50">
-                                        <div className={`w-full py-6 rounded-3xl font-black text-xl border-2 transition-all duration-500 shadow-sm ${ratios.isCompliant ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-                                            {ratios.isCompliant ? "VALIDE" : "REJETÉ"}
-                                        </div>
-                                        <div className="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
-                                                Analyse selon normes AAOIFI et autres indices islamiques
-                                            </p>
+                <!-- COLONNE DROITE (RESUME) -->
+                <div class="lg:col-span-4">
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 sticky top-8 print-card">
+                        <h3 class="font-black text-slate-800 mb-8 text-xl border-b border-slate-50 pb-4 tracking-tight text-center">Résumé Analyse</h3>
+                        
+                        <div class="space-y-8 mb-12">
+                            <!-- Revenus -->
+                            <div class="flex flex-col">
+                                <div class="flex justify-between items-center text-[10px] font-bold uppercase mb-2">
+                                    <div class="flex items-center">
+                                        <span class="text-slate-400 tracking-wider">Revenus (5%)</span>
+                                        <div class="tooltip-container relative inline-block ml-2 no-print">
+                                            <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                            </span>
+                                            <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -right-24 border border-slate-700">
+                                                Basé sur le Chiffre d'Affaires Global.
+                                            </div>
                                         </div>
                                     </div>
+                                    <span id="summary-income-val" class="font-black text-xs">0.00%</span>
+                                </div>
+                                <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+                                    <div id="summary-income-bar" class="h-full transition-all duration-700 ease-out bg-indigo-600" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Dette -->
+                            <div class="flex flex-col">
+                                <div class="flex justify-between items-center text-[10px] font-bold uppercase mb-2">
+                                    <div class="flex items-center">
+                                        <span class="text-slate-400 tracking-wider">Dette (30%)</span>
+                                        <div class="tooltip-container relative inline-block ml-2 no-print">
+                                            <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                            </span>
+                                            <div id="summary-debt-tooltip" class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -right-24 border border-slate-700">
+                                                Détail diviseur...
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span id="summary-debt-val" class="font-black text-xs">0.00%</span>
+                                </div>
+                                <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+                                    <div id="summary-debt-bar" class="h-full transition-all duration-700 ease-out bg-indigo-600" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Placements -->
+                            <div class="flex flex-col">
+                                <div class="flex justify-between items-center text-[10px] font-bold uppercase mb-2">
+                                    <div class="flex items-center">
+                                        <span class="text-slate-400 tracking-wider">Placement à intérêt (30%)</span>
+                                        <div class="tooltip-container relative inline-block ml-2 no-print">
+                                            <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                            </span>
+                                            <div class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -right-24 border border-slate-700">
+                                                Basé sur la Capitalisation Boursière.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span id="summary-invest-val" class="font-black text-xs">0.00%</span>
+                                </div>
+                                <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+                                    <div id="summary-invest-bar" class="h-full transition-all duration-700 ease-out bg-indigo-600" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Liquidité -->
+                            <div class="flex flex-col">
+                                <div class="flex justify-between items-center text-[10px] font-bold uppercase mb-2">
+                                    <div class="flex items-center">
+                                        <span class="text-slate-400 tracking-wider">Liquidité (70%)</span>
+                                        <div class="tooltip-container relative inline-block ml-2 no-print">
+                                            <span class="text-slate-400 cursor-help hover:text-indigo-500 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                            </span>
+                                            <div id="summary-liq-tooltip" class="tooltip-box absolute z-50 w-72 p-3 mt-2 text-[11px] font-normal leading-relaxed text-white bg-slate-800 rounded-xl shadow-2xl -right-24 border border-slate-700">
+                                                Détail diviseur...
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span id="summary-liq-val" class="font-black text-xs">0.00%</span>
+                                </div>
+                                <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+                                    <div id="summary-liq-bar" class="h-full transition-all duration-700 ease-out bg-indigo-600" style="width: 0%"></div>
                                 </div>
                             </div>
                         </div>
 
-                        <footer className="mt-12 text-center text-slate-400 text-[10px] uppercase font-bold tracking-widest no-print">
-                            Expert Compliance Analysis &bull; AAOIFI Standards
-                        </footer>
+                        <div class="text-center pt-6 border-t border-slate-50">
+                            <div id="final-status-box" class="w-full py-6 rounded-3xl font-black text-xl border-2 transition-all duration-500 shadow-sm">
+                                CALCUL EN COURS
+                            </div>
+                            <div class="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
+                                    Analyse selon normes AAOIFI et autres indices islamiques
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            );
+            </div>
+
+            <footer class="mt-12 text-center text-slate-400 text-[10px] uppercase font-bold tracking-widest no-print">
+                Expert Compliance Analysis &bull; AAOIFI Standards
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION & SEUILS
+        const THRESHOLDS = { income: 0.05, debt: 0.30, liquidity: 0.70, investments: 0.30 };
+
+        // ETAT INITIAL DE L'APPLICATION
+        let state = {
+            companyName: '',
+            dataPeriod: '',
+            marketCap: 0,
+            totalAssets: 0,
+            totalRevenue: 0,
+            nonCompliantIncome: 0,
+            shortTermDebt: 0,
+            longTermDebt: 0,
+            financialAssetsLongTerm: 0,
+            securitiesShortTerm: 0,
+            cashAndEquivalents: 0,
+            interestBearingSecurities: 0,
+            accountsReceivable: 0,
+            debtDenominatorSelection: 'min'
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // CHARGEMENT DEPUIS LOCAL STORAGE
+        try {
+            const saved = localStorage.getItem('aaoifi_data_v8');
+            if (saved) {
+                state = { ...state, ...JSON.parse(saved) };
+            }
+        } catch (e) {
+            console.error("Erreur de lecture du localStorage", e);
+        }
+
+        // FORMATTAGE MILLIERS (Ex: "1234567" -> "1 234 567")
+        function formatNumber(num) {
+            if (num === 0 || !num) return '';
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
+
+        // PARSER DE TEXTE COMPTABLE EN NOMBRE REEL
+        function parseCleanNumber(str) {
+            const clean = str.replace(/\s/g, '');
+            if (clean === '' || isNaN(parseFloat(clean))) return 0;
+            return parseFloat(clean);
+        }
+
+        // BINDING DES VALEURS DU STATE DANS LES INPUTS DU DOM
+        function initInputs() {
+            const textFields = ['companyName', 'dataPeriod'];
+            textFields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = state[id];
+                    el.addEventListener('input', (e) => {
+                        state[id] = e.target.value;
+                        saveState();
+                        calculateRatios();
+                    });
+                }
+            });
+
+            const numFields = [
+                'marketCap', 'totalAssets', 'totalRevenue', 'nonCompliantIncome',
+                'shortTermDebt', 'longTermDebt', 'financialAssetsLongTerm',
+                'securitiesShortTerm', 'cashAndEquivalents', 'interestBearingSecurities',
+                'accountsReceivable'
+            ];
+
+            numFields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = formatNumber(state[id]);
+
+                    el.addEventListener('input', (e) => {
+                        let cursorPosition = e.target.selectionStart;
+                        let rawValue = e.target.value;
+                        let digitsOnly = rawValue.replace(/[^\d.]/g, '');
+                        
+                        let originalLength = rawValue.length;
+                        let parsedNum = digitsOnly === '' ? 0 : parseFloat(digitsOnly);
+                        
+                        state[id] = parsedNum;
+                        el.value = formatNumber(parsedNum);
+                        
+                        // Ajustement de la position du curseur
+                        let newLength = el.value.length;
+                        cursorPosition = cursorPosition + (newLength - originalLength);
+                        el.setSelectionRange(cursorPosition, cursorPosition);
+                        
+                        saveState();
+                        calculateRatios();
+                    });
+
+                    el.addEventListener('blur', () => {
+                        el.value = formatNumber(state[id]);
+                    });
+                }
+            });
+
+            // Select pour le diviseur
+            const selectDiv = document.getElementById('debtDenominatorSelection');
+            if (selectDiv) {
+                selectDiv.value = state.debtDenominatorSelection;
+                selectDiv.addEventListener('change', (e) => {
+                    state.debtDenominatorSelection = e.target.value;
+                    saveState();
+                    calculateRatios();
+                });
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('aaoifi_data_v8', JSON.stringify(state));
+            } catch (e) {
+                console.error("Impossible de sauvegarder l'état", e);
+            }
+        }
+
+        // FORMULES MATHEMATIQUES & CALCUL DE COMPLIANCE
+        function calculateRatios() {
+            const {
+                marketCap, totalAssets, totalRevenue, nonCompliantIncome,
+                shortTermDebt, longTermDebt, financialAssetsLongTerm,
+                securitiesShortTerm, cashAndEquivalents, interestBearingSecurities,
+                accountsReceivable, debtDenominatorSelection
+            } = state;
+
+            // Dénominateur minimal
+            const denominatorMin = (marketCap > 0 && totalAssets > 0) ? Math.min(marketCap, totalAssets) : (marketCap || totalAssets || 0);
+
+            // 1. Ratio des revenus impurs
+            const incomeRatio = totalRevenue > 0 ? nonCompliantIncome / totalRevenue : 0;
+
+            // 2. Ratio de la dette brute
+            let debtDenom = denominatorMin;
+            if (debtDenominatorSelection === 'marketCap') debtDenom = marketCap;
+            else if (debtDenominatorSelection === 'totalAssets') debtDenom = totalAssets;
+
+            const totalDebtVal = (shortTermDebt || 0) + (longTermDebt || 0);
+            const debtRatio = debtDenom > 0 ? totalDebtVal / debtDenom : 0;
+
+            // 3. Ratio des placements à intérêt
+            const totalInvestmentsVal = (financialAssetsLongTerm || 0) + (securitiesShortTerm || 0);
+            const investmentRatio = marketCap > 0 ? totalInvestmentsVal / marketCap : 0;
+
+            // 4. Ratio de liquidité globale
+            const liquidAssetsVal = (cashAndEquivalents || 0) + (interestBearingSecurities || 0) + (accountsReceivable || 0);
+            const liquidityRatio = denominatorMin > 0 ? liquidAssetsVal / denominatorMin : 0;
+
+            // Statut de conformité Shariah (Respect simultané des 4 limites)
+            const isCompliant = incomeRatio <= THRESHOLDS.income && 
+                                debtRatio <= THRESHOLDS.debt && 
+                                liquidityRatio <= THRESHOLDS.liquidity &&
+                                investmentRatio <= THRESHOLDS.investments;
+
+            // MISE A JOUR DU DOM (Calculs dérivés)
+            document.getElementById('totalDebt').value = formatNumber(totalDebtVal);
+            document.getElementById('totalInterestInvestments').value = formatNumber(totalInvestmentsVal);
+            document.getElementById('totalLiquidAssets').value = formatNumber(liquidAssetsVal);
+
+            // Mise à jour des info-bulles dynamiques
+            const minDenomLabel = (marketCap > 0 && totalAssets > 0) 
+                ? "Minimum de la Cap. Boursière et du Total Actifs" 
+                : (marketCap ? "Capitalisation Boursière" : "Total Actifs");
+
+            const debtDenomLabel = debtDenominatorSelection === 'min' ? minDenomLabel : (debtDenominatorSelection === 'marketCap' ? "Capitalisation Boursière" : "Total Actifs");
+
+            document.getElementById('debt-tooltip-denom').innerText = `Dénominateur utilisé pour ce ratio : ${debtDenomLabel}.`;
+            document.getElementById('summary-debt-tooltip').innerText = `Basé sur : ${debtDenomLabel}.`;
+            document.getElementById('liquidity-tooltip').innerText = `Dénominateur utilisé pour ce ratio : ${minDenomLabel}.`;
+            document.getElementById('summary-liq-tooltip').innerText = `Basé sur : ${minDenomLabel}.`;
+
+            // Mise à jour de la colonne de résumé de droite
+            updateSummaryRow('summary-income', incomeRatio, THRESHOLDS.income);
+            updateSummaryRow('summary-debt', debtRatio, THRESHOLDS.debt);
+            updateSummaryRow('summary-invest', investmentRatio, THRESHOLDS.investments);
+            updateSummaryRow('summary-liq', liquidityRatio, THRESHOLDS.liquidity);
+
+            // Mise à jour de la boîte de statut finale
+            const finalBox = document.getElementById('final-status-box');
+            const badge = document.getElementById('status-badge');
+            const badgeText = document.getElementById('status-text');
+
+            if (isCompliant) {
+                finalBox.className = "w-full py-6 rounded-3xl font-black text-xl border-2 transition-all duration-500 shadow-sm bg-green-50 border-green-200 text-green-700";
+                finalBox.innerText = "VALIDE";
+                
+                badge.className = "px-6 py-2.5 rounded-xl flex items-center gap-3 shadow-lg bg-green-600 text-white transition-colors duration-500";
+                badgeText.innerText = "Conforme";
+            } else {
+                finalBox.className = "w-full py-6 rounded-3xl font-black text-xl border-2 transition-all duration-500 shadow-sm bg-red-50 border-red-200 text-red-700";
+                finalBox.innerText = "REJETÉ";
+
+                badge.className = "px-6 py-2.5 rounded-xl flex items-center gap-3 shadow-lg bg-red-600 text-white transition-colors duration-500";
+                badgeText.innerText = "Non-Conforme";
+            }
+        }
+
+        // MISE A JOUR GRAPHIQUE ET TEXTUELLE DES RATIOS DANS LA SIDEBAR
+        function updateSummaryRow(prefix, val, threshold) {
+            const labelEl = document.getElementById(`${prefix}-val`);
+            const barEl = document.getElementById(`${prefix}-bar`);
+            
+            if (labelEl && barEl) {
+                labelEl.innerText = `${(val * 100).toFixed(2)}%`;
+                
+                const percentage = Math.min(100, (val / threshold) * 100);
+                barEl.style.width = `${percentage}%`;
+
+                if (val > threshold) {
+                    labelEl.className = "text-red-500 font-black text-xs";
+                    barEl.className = "h-full transition-all duration-700 ease-out bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
+                } else {
+                    labelEl.className = "text-indigo-600 font-black text-xs";
+                    barEl.className = "h-full transition-all duration-700 ease-out bg-indigo-600";
+                }
+            }
+        }
+
+        // EXPORT DE TOUT LE CLASSEMENT DE CONFORMITE EN EXCEL
+        function exportToExcel() {
+            const {
+                companyName, dataPeriod, marketCap, totalAssets, totalRevenue, nonCompliantIncome,
+                shortTermDebt, longTermDebt, financialAssetsLongTerm, securitiesShortTerm,
+                cashAndEquivalents, interestBearingSecurities, accountsReceivable, debtDenominatorSelection
+            } = state;
+
+            const denominatorMin = (marketCap > 0 && totalAssets > 0) ? Math.min(marketCap, totalAssets) : (marketCap || totalAssets || 0);
+            const incomeRatio = totalRevenue > 0 ? nonCompliantIncome / totalRevenue : 0;
+            
+            let debtDenom = denominatorMin;
+            if (debtDenominatorSelection === 'marketCap') debtDenom = marketCap;
+            else if (debtDenominatorSelection === 'totalAssets') debtDenom = totalAssets;
+
+            const totalDebtVal = (shortTermDebt || 0) + (longTermDebt || 0);
+            const debtRatio = debtDenom > 0 ? totalDebtVal / debtDenom : 0;
+            
+            const totalInvestmentsVal = (financialAssetsLongTerm || 0) + (securitiesShortTerm || 0);
+            const investmentRatio = marketCap > 0 ? totalInvestmentsVal / marketCap : 0;
+
+            const liquidAssetsVal = (cashAndEquivalents || 0) + (interestBearingSecurities || 0) + (accountsReceivable || 0);
+            const liquidityRatio = denominatorMin > 0 ? liquidAssetsVal / denominatorMin : 0;
+
+            const isCompliant = incomeRatio <= THRESHOLDS.income && 
+                                debtRatio <= THRESHOLDS.debt && 
+                                liquidityRatio <= THRESHOLDS.liquidity &&
+                                investmentRatio <= THRESHOLDS.investments;
+
+            const worksheetData = [
+                ["RAPPORT D'ANALYSE SHARIAH"],
+                ["Entreprise", companyName || "N/A"],
+                ["Période", dataPeriod || "N/A"],
+                ["Date d'analyse", new Date().toLocaleDateString()],
+                [""],
+                ["DONNÉES FINANCIÈRES"],
+                ["Capitalisation Boursière", marketCap],
+                ["Total Actifs", totalAssets],
+                ["Chiffre d'Affaires", totalRevenue],
+                ["Revenus Non-Conformes", nonCompliantIncome],
+                ["Dette Totale", totalDebtVal],
+                ["Total Placements Intérêts", totalInvestmentsVal],
+                ["Total Liquidités", liquidAssetsVal],
+                [""],
+                ["RÉSULTATS DES RATIOS"],
+                ["Ratio Revenus Impurs (Max 5%)", (incomeRatio * 100).toFixed(2) + "%"],
+                ["Ratio Dette (Max 30%)", (debtRatio * 100).toFixed(2) + "%"],
+                ["Ratio Placements Intérêts (Max 30%)", (investmentRatio * 100).toFixed(2) + "%"],
+                ["Ratio Liquidités (Max 70%)", (liquidityRatio * 100).toFixed(2) + "%"],
+                ["Statut Final", isCompliant ? "CONFORME" : "NON-CONFORME"]
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Analyse");
+            XLSX.writeFile(wb, `Analyse_Shariah_${companyName || 'Export'}.xlsx`);
+        }
+
+        // INITIALISATION DES LOGIQUES APRES CHARGEMENT DU DOM
+        window.addEventListener('DOMContentLoaded', () => {
+            initInputs();
+            calculateRatios();
+            
+            const btn = document.getElementById('btn-export');
+            if (btn) btn.addEventListener('click', exportToExcel);
+        });
     </script>
 </body>
 </html>
